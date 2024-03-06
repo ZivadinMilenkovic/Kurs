@@ -4,16 +4,25 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from random import randrange
 app=FastAPI()
-# klasa Post nasledjuje BaseModel
-#postavljamo vrstu podataka koji treba da se unese
-#pravimo model
+
+
+# class Post extends BaseModel
+
+
 class Post(BaseModel):
     title: str
     content: str
-    publisshed: bool = True #default value (opciono polje)ako korisnik ne unese podatke ovo ce biti vrednost tog polja
-    rating: Optional[int]= None #potpuna opciono polje koje prima int ali ako ga korisnik ne unese onda ce biti none(prazno)
-# kad koristimo path parametar id ce uvek biti string i zato moramo da ga promenimu int
-# moramo da obezbedimo da mora da bude integer i automacki ga konvetuje, ako se unese neki ranom id koji nije string izlazi grska
+    publisshed: bool = True 
+    rating: Optional[int]= None 
+
+
+# full optional field that use int value, but if user type str vaule field will be empty 
+# when we use the path parameter id will always be a string and that's why we have to change it to int
+# we have to ensure that it must be an integer and automatically converts it, if some early id that is not a string is entered, Greek is output
+# default value (optional field) if the user does not enter data, this will be the value of that field
+# complete optional field that receives an int but if the user does not enter it then it will be none (empty)
+
+
 def getone(id: int):
     for post in my_posts:
         if post['id']==id:
@@ -22,71 +31,94 @@ def get_index_of_del_item(id):
     for i,p in enumerate(my_posts):
         if p['id'] == id:
             return i
+        
+
 my_posts=[{"title":"post 1","content":"content of post 1","id": 1},
           {"title":"post 2","content":"content of post 2","id": 2}]
 
-@app.get('/') #decorator,pretvara funkciju u path tj daje joj putanju
-# ovo je default path, ako stavimo /login znaci da ce se ova funkcia pokrenuti ako 
-# korisnik ode na taj domen
-def hello(): #funkcija
+
+@app.get('/') 
+def hello():
     return{"message":"Welcom to my API"}
-# kako mi bi pokreniuli server unicorn filename:pathname/root
-# api koristi json
-#svaki put kada napravimo promenu potrebnoje restartovati sever
-#ctrl+c kako bi se server zaustavio i ponovo unicorn:app
-#zbog toga koristimo unicorn:app --reload
-#samo kad smo u development env pisemo reload
+
+
+#decorator, turns the function into a path, i.e. gives it a path
+# this is the default path, if we put /login it means that this function will start if
+# user goes to that domain
+# how to start the server unicorn filename:pathname/root
+# api uses json
+# every time we make a change it is necessary to restart the server
+#ctrl+c to stop the server and unicorn:app again
+#that's why we use unicorn:app --reload
+#only when we are in the development env we write reload
+
+
 @app.get("/posts")
 def get_posts():
     return{"data":my_posts}
-# nemozemo staviti vise dekoratora na jedan path(mozemo 
-# ali kada stigne do prvog prestaje da gleda ta path)
-#post man koristimo za manipulacija http reqestovima
-#POST koristimo da kreiramo podatake,GET kako bi pokupili podatke
 
-#body uzima sva polja iz bodyja i pretvara u pyton dictionary(dict dictionary) koji se cuva u payloadu
-#def funname(metodname: dict:Body(...))
-# kako bi promenili default status kod prmneli potrebno je staviti status kod u decoration
+
+# we cannot put more decorators on one path
+# but when it gets to the first one it stops looking at that path)
+# We use #post man to manipulate http requests
+# We use #POST to create the data, GET to retrieve the data
+# body takes all the fields from the body and converts it into a python dictionary (dict dictionary) which is stored in the payload
+# def funname(methodname: dict:Body(...))
+# in order to change the default status code prmneli, it is necessary to put the status code in decoration
+
+
 @app.post("/posts",status_code=status.HTTP_201_CREATED)
-# provera da li su podaci validni
-# ovim ga cuvamo u paydeitc modelu zato koristimo dict da ga prtvorimo u dictionary
+
+
+# check if the data is valid
+# we
+#  store it in the paydeitc model with this, so we use dict to turn it into a dictionary
+
+
 def create_posts(post:Post):
     post_dict=post.dict()
     post_dict['id']=randrange(0,1000000)
     my_posts.append(post_dict)
     return {"data":post_dict}
 
+
 @app.get("/posts/latest")
 def get_latest_post():
     post = my_posts[len(my_posts)-1]
     return{"detail": post}
 
-# kako bi dodali nesto u postmanu udjemo u body i row i stavimo vrstu json(post request)
-#potrebno je koristiti '' za imena filodva
-#kako bi obezbedili da dobijemo validene podatke moramo napraviti shamu koja obezbedjuje
-#koristimo pydentic, moze se koristiti van fastapi
-#crud (create,read,upadate,delete(post,get,put/patch,delete) za get,put,delete moze/mora da se kortist pr: /posts/{id})
-# id je path paramtar odrednjeni post cije podatke zelimo da dobijemo
-#ako korisnik u unese niki id koji nepostoji potrebno je to predvideti tako sto cemo mu izbaciti eror kod 404
-#zbog toga moramo da iportujemo response
+
+# in order to add something to the postman, enter the body and row and put the type json (post request)
+#need to use '' for file names
+#in order to ensure that we get validated data, we must create a scheme that ensures
+#we use pydentic, it can be used outside fastapi
+#crud (create,read,upadate,delete(post,get,put/patch,delete) for get,put,delete can/must be cortist eg: /posts/{id})
+# id is the path parameter of the specified post whose data we want to get
+#if the user enters an id that does not exist, it is necessary to predict this by giving him a 404 error code
+#that's why we have to import response
+# 404 can be put, but the status containing all http responses can be immortized
+# respnse.status_code=status.HTTP_404_NOT_FOUND
+# return{"message": f"post with id {id} was not found"}
+# it can be like this
+
+
 @app.get("/posts/{id}")
 def get_post(id: int,response: Response ):
     post=getone(id)
     if not post:
-        # moze se staviti 404 ali se moze imortovati status koji sadrzi sve http response
-        # respnse.status_code=status.HTTP_404_NOT_FOUND
-        # return{"message": f"post with id {id} was not found"}
-        # moze i ovako
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
     return{"data":post}
 
+
 # kada radimo delite ne treba da se vracti nikakve podatke
+# post=getone(id)
+# if not post:
+#     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+
 @app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    # post=getone(id)
-    # if not post:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    index=get_index_of_del_item()
+    index=get_index_of_del_item(id)
     if index(id) == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
     my_posts.pop(index(id))
@@ -103,5 +135,6 @@ def upadate_posts(id:int,post:Post):
     my_posts[index] = post_dict
     return{"data": my_posts}
 
-#kako bi videli dokumentaciju samo u url-u ukucamo docs i fastapi ima ugradje swag koje se otvara
-#takodje se moze koristiti redoc
+
+# in order to see the documentation, just type docs in the url and fastapi has a built-in swag that opens
+# redoc can also be used
