@@ -152,6 +152,15 @@ def delete_post(id: int):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@app.patch("/posts/{id}")
+def patch_posts(id:int,post:Post): 
+    cursor.execute("""UPDATE posts SET title = %s WHERE id = %s RETURNING *""",(post.title,str(id),))
+    up_post=cursor.fetchone() 
+    if up_post == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
+    conn.commit()
+    return{"data": up_post}
+
 @app.put("/posts/{id}")
 def upadate_posts(id:int,post:Post): 
     cursor.execute("""UPDATE posts SET title = %s,content = %s WHERE id = %s RETURNING *""",(post.title,post.content,str(id),))
