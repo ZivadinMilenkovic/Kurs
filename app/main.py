@@ -3,6 +3,11 @@ from fastapi import FastAPI,Response,status,HTTPException
 from fastapi.params import Body
 from pydantic import BaseModel
 from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+
+
 app=FastAPI()
 
 
@@ -15,6 +20,22 @@ class Post(BaseModel):
     publisshed: bool = True 
     rating: Optional[int]= None 
 
+# conn=psycopg2.connect(host,database,user, password)
+# psycopg2 retrund only value of field but doesnt retrun name of field
+# RealDictCursor returns name of field
+# we use cursor to execute sql statemnts
+while True:
+    try:
+        conn=psycopg2.connect(host='localhost',database='fastapi',user='postgres', password='postgres', cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("database connection wasa succesfull")
+        break
+    except Exception as error:
+        print("connecting to database fail")
+        print("Error", error)
+        time.sleep(2)
+
+
 
 # full optional field that use int value, but if user type str vaule field will be empty 
 # when we use the path parameter id will always be a string and that's why we have to change it to int
@@ -23,10 +44,12 @@ class Post(BaseModel):
 # complete optional field that receives an int but if the user does not enter it then it will be none (empty)
 
 
-def getone(id: int):
-    for post in my_posts:
-        if post['id']==id:
-            return post
+# def getone(id: int):
+#     for post in my_posts:
+#         if post['id']==id:
+#             return post
+        
+
 def get_index_of_del_item(id):
     for i,p in enumerate(my_posts):
         if p['id'] == id:
@@ -41,21 +64,23 @@ my_posts=[{"title":"post 1","content":"content of post 1","id": 1},
 def hello():
     return{"message":"Welcom to my API"}
 
-
-#decorator, turns the function into a path, i.e. gives it a path
+ 
+# decorator, turns the function into a path, i.e. gives it a path
 # this is the default path, if we put /login it means that this function will start if
 # user goes to that domain
 # how to start the server unicorn filename:pathname/root
-# api uses json
+# api uses json 
 # every time we make a change it is necessary to restart the server
-#ctrl+c to stop the server and unicorn:app again
-#that's why we use unicorn:app --reload
-#only when we are in the development env we write reload
-
+# ctrl+c to stop the server and unicorn:app again
+# that's why we use unicorn:app --reload
+# only when we are in the development env we write reload
+# with fetchall/fetchone(many or one post) we can use our sql
 
 @app.get("/posts")
 def get_posts():
-    return{"data":my_posts}
+    cursor.execute("""SELECT * FROM posts""")
+    posts=cursor.fetchall()
+    return{"data":posts}
 
 
 # we cannot put more decorators on one path
@@ -72,14 +97,14 @@ def get_posts():
 
 # check if the data is valid
 # we
-#  store it in the paydeitc model with this, so we use dict to turn it into a dictionary
-
+# store it in the paydeitc model with this, so we use dict to turn it into a dictionary
+# this is the way we insert/post data and we need to commit data to save it
 
 def create_posts(post:Post):
-    post_dict=post.dict()
-    post_dict['id']=randrange(0,1000000)
-    my_posts.append(post_dict)
-    return {"data":post_dict}
+    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s,%s,%s) RETURNING * """,(post.title,post.content,post.publisshed))
+    new_post=cursor.fetchone()
+    conn.commit()
+    return {"data":new_post}
 
 
 @app.get("/posts/latest")
@@ -100,17 +125,18 @@ def get_latest_post():
 # respnse.status_code=status.HTTP_404_NOT_FOUND
 # return{"message": f"post with id {id} was not found"}
 # it can be like this
-
+# id need to be string
 
 @app.get("/posts/{id}")
 def get_post(id: int,response: Response ):
-    post=getone(id)
+    cursor.execute("""SELECT * FROM posts WHERE id = %s """,(str(id),))
+    post=cursor.fetchone() 
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
+    conn.commit()
     return{"data":post}
 
 
-# kada radimo delite ne treba da se vracti nikakve podatke
 # post=getone(id)
 # if not post:
 #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -118,23 +144,35 @@ def get_post(id: int,response: Response ):
 
 @app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    index=get_index_of_del_item(id)
-    if index(id) == None:
+    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""",(str(id),))
+    post=cursor.fetchone() 
+    if post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
-    my_posts.pop(index(id))
+    conn.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@app.patch("/posts/{id}")
+def patch_posts(id:int,post:Post): 
+    cursor.execute("""UPDATE posts SET title = %s WHERE id = %s RETURNING *""",(post.title,str(id),))
+    up_post=cursor.fetchone() 
+    if up_post == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
+    conn.commit()
+    return{"data": up_post}
+
 @app.put("/posts/{id}")
 def upadate_posts(id:int,post:Post): 
-    index=get_index_of_del_item(id)
-    if index == None:
+    cursor.execute("""UPDATE posts SET title = %s,content = %s WHERE id = %s RETURNING *""",(post.title,post.content,str(id),))
+    up_post=cursor.fetchone() 
+    if up_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
-    post_dict=post.dict()
-    post_dict['id']=id
-    my_posts[index] = post_dict
-    return{"data": my_posts}
+    conn.commit()
+    return{"data": up_post}
 
 
 # in order to see the documentation, just type docs in the url and fastapi has a built-in swag that opens
 # redoc can also be used
+
+
+#postgras can create instance of detabase for each app indenpednetly
