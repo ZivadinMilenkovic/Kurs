@@ -1,7 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
-from pydantic import BaseModel
 from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -11,20 +10,12 @@ from .database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from .database import get_db
-
+from . import schemas
 
 # makes new table that we define in model
 
 model.Base.metadata.create_all(bind=engine)
 app = FastAPI()
-
-
-# class Post extends BaseModel
-
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
 
 
 while True:
@@ -73,11 +64,11 @@ def get_posts(db: Session = Depends(get_db)):
     # cursor.execute("""SELECT * FROM posts""")
     # posts = cursor.fetchall()
     posts = db.query(model.Post).all()
-    return {"data": posts}
+    return posts
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_posts(post: Post, db: Session = Depends(get_db)):
+@app.post("/posts",response_model=schemas.Post, status_code=status.HTTP_201_CREATED)
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute(
     #     """INSERT INTO posts (title, content, published) VALUES (%s,%s,%s) RETURNING * """,
     #     (post.title, post.content, post.publisshed),
@@ -91,10 +82,10 @@ def create_posts(post: Post, db: Session = Depends(get_db)):
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return {"data": new_post}
+    return new_post
 
 
-@app.get("/posts/latest")
+@app.get("/posts/latest",response_model=schemas.Post)
 def get_latest_post(db: Session = Depends(get_db)):
     #     cursor.execute(
     #         """SELECT *
@@ -110,10 +101,10 @@ def get_latest_post(db: Session = Depends(get_db)):
     #      SELECT max(created_at) FROM posts
     #      )""")).first()
     new_post=db.query(model.Post).order_by(desc('created_at')).first()
-    return {"detail": new_post}
+    return new_post
 
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}",response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
     # post = cursor.fetchone()
@@ -123,7 +114,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"post with id {id} was not found",
         )
-    return {"data": post}
+    return post
 
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -142,27 +133,22 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.patch("/posts/{id}")
-def patch_posts(id: int, post: Post):
-    cursor.execute(
-        """UPDATE posts SET title = %s WHERE id = %s RETURNING *""",
-        (
-            post.title,
-            str(id),
-        ),
-    )
-    up_post = cursor.fetchone()
-    if up_post == None:
+@app.patch("/posts/{id}",response_model=schemas.Post)
+def patch_posts(id: int, post: schemas.PostPatch,db: Session=Depends(get_db)):
+    pt_query=db.query(model.Post).filter(model.Post.id==id)
+    if pt_query.first()==None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"post with id {id} was not found",
+            detail=f"{id} didnt found"
         )
-    conn.commit()
-    return {"data": up_post}
+    pt_query.update(post.dict())
+    db.commit()
+    db.refresh(pt_query.first())
+    return pt_query.first()
 
 
-@app.put("/posts/{id}")
-def upadate_posts(id: int, post: Post,db: Session=Depends(get_db)):
+@app.put("/posts/{id}",response_model=schemas.Post)
+def upadate_posts(id: int, post: schemas.PostCreate,db: Session=Depends(get_db)):
     # cursor.execute(
     #     """UPDATE posts SET title = %s,content = %s WHERE id = %s RETURNING *""",
     #     (
@@ -182,4 +168,5 @@ def upadate_posts(id: int, post: Post,db: Session=Depends(get_db)):
         )
     up_query.update(post.dict(),synchronize_session=False)
     db.commit()
-    return {"data": up_query.first()}
+    return up_query.first()
+
