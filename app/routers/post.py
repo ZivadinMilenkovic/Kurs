@@ -3,7 +3,8 @@ from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
-from sqlalchemy import desc
+from sqlalchemy import desc,func,select
+from datetime import date, datetime
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -63,7 +64,7 @@ def get_latest_post(
     return new_post
 
 
-@router.get("/{id}", response_model=schemas.Post)
+@router.get("/{id}")
 def get_post(
     id: int,
     db: Session = Depends(get_db),
@@ -71,7 +72,7 @@ def get_post(
 ):
     # cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
     # post = cursor.fetchone()
-    post = db.query(model.Post).filter(model.Post.id == id).first()
+    post = db.query(model.Post.title).filter(model.Post.id == id).first()
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -79,6 +80,26 @@ def get_post(
         )
     return post
 
+@router.get("/test/{id}")
+def get_post(
+    id: int,
+    db: Session = Depends(get_db),
+    curr_user: int = Depends(oauth2.get_current_user),
+):
+    # cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
+    # post = cursor.fetchone()
+    # post = db.query(model.Post).filter(model.Post.id > id).all()
+    post = db.query(func.concat(model.Post.content," ",model.Post.id).label("Novo")).filter(model.Post.id > id).limit(2).all()
+    # post = db.query(func.max(model.Post.id).label("MAX"),func.min(model.Post.id).label("MIN"),func.avg(model.Post.id).label("AVG")).filter(model.Post.created_at > db.query(model.Post.created_at).filter(model.Post.id == id)).all()
+    # post = db.query(model.Post.id,func.lower(model.Post.title).label("new"),func.upper(model.Post.content).label("NEM"),).filter(model.Post.id.between(1,10)).all()
+    # post = db.query(model.Post).filter(start)
+    print(post)
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"post with id {id} was not found",
+        )
+    return post
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(
