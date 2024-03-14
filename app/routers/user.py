@@ -9,9 +9,13 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
 def create_user(user: schemas.UsersBase, db: Session = Depends(get_db)):
-
     user.password = utils.hash(user.password)
     new_user = model.User(**user.dict())
+    if (
+        db.query(model.User.email).filter(model.User.email == new_user.email).first()
+        != None
+    ):
+        raise HTTPException(status_code=status.HTTP_226_IM_USED)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
