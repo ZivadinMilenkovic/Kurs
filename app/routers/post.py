@@ -3,7 +3,7 @@ from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -24,7 +24,7 @@ def get_posts(
     return posts
 
 
-@router.get("/query", response_model=List[schemas.Post])
+@router.get("/query", response_model=List[schemas.PostOut])
 def get_posts(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
@@ -32,14 +32,17 @@ def get_posts(
     offset: int = 0,
     search: Optional[str] = "",
 ):
-    posts = (
-        db.query(model.Post)
+
+    results = (
+        db.query(model.Post, func.count(model.Vote.post_id).label("votes"))
+        .join(model.Vote, model.Vote.post_id == model.Post.id, isouter=True)
         .filter(model.Post.title.contains(search))
+        .group_by(model.Post.id)
         .limit(limit)
         .offset(offset)
         .all()
     )
-    return posts
+    return results
 
 
 # for example if user want to create post he need to be login
@@ -87,7 +90,7 @@ def get_latest_post(
     return new_post
 
 
-@router.get("/{id}", response_model=schemas.Post)
+@router.get("/{id}", response_model=schemas.PostOut)
 def get_post(
     id: int,
     db: Session = Depends(get_db),
@@ -95,13 +98,19 @@ def get_post(
 ):
     # cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
     # post = cursor.fetchone()
-    post = db.query(model.Post).filter(model.Post.id == id).first()
+    post = (
+        db.query(model.Post, func.count(model.Vote.post_id).label("votes"))
+        .join(model.Vote, model.Vote.post_id == model.Post.id, isouter=True)
+        .filter(model.Post.id == id)
+        .group_by(model.Post.id)
+        .first()
+    )
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"post with id {id} was not found",
         )
-    if post.owner_id != curr_user.id:
+    if post.Post.owner_id != curr_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to performe requested auction",
