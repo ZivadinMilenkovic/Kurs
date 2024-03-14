@@ -5,7 +5,7 @@ from .routers import user, post, auth, vote
 
 # makes new table that we define in model
 
-model.Base.metadata.create_all(bind=engine)
+# model.Base.metadata.create_all(bind=engine)
 
 # declaring type of crypting algorithm
 
