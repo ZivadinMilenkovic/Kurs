@@ -7,6 +7,7 @@ from .config import settings
 
 
 SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.datebase_username}:{settings.datebase_passoword}@{settings.datebase_hostname}/{settings.datebase_name}"
+# SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:postgres@localhost:5432/fastapi"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

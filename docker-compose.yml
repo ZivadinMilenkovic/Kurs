@@ -1,0 +1,29 @@
+version: '3'
+services:
+  api:
+    build: .
+    ports:
+      - 8000:8000
+    # env_file:
+    #   - ./.env
+    environment:
+      - datebase_hostname=postgres
+      - datebase_port=5432
+      - datebase_passoword=postgres
+      - datebase_name=fastapi
+      - datebase_username=postgres
+      - secret_key=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+      - algorihm=HS256
+      - expire=60
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fastapi
+
+
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+
+volumes:
+  postgres-db:
