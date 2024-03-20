@@ -15,6 +15,13 @@ def test_create_vote(authorized_client,test_posts):
     print(res.json())
     assert res.status_code==201
 
+def test_create_vote_on_his_post(authorized_client,test_posts):
+    res = authorized_client.post("/vote/",json={
+    "post_id": test_posts[1].id,
+    "dir":1 })
+    print(res.json())
+    assert res.status_code==409
+
 def test_vote_twice_post(authorized_client,test_posts,test_vote):
     res = authorized_client.post("/vote/",json={"post_id":test_posts[3].id,"dir":1})
     assert res.status_code==409

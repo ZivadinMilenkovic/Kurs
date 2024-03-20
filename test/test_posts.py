@@ -4,11 +4,7 @@ from app import model, schemas
 
 def test_get_all_post(authorized_client,test_posts):
     res = authorized_client.get("/posts/all")
-    def validate(post):
-        return schemas.PostOut(**post)
     print(res.json())
-    # posts_map= map(validate, res.json())
-    # print(posts_map)
     assert len(res.json())==len(test_posts)
     assert res.status_code == 200
     
@@ -125,4 +121,21 @@ def test_unauthorized_update_one_post(client,test_posts):
     "content":"nwe",
     "owner_id":test_posts[0].owner_id
 })
-    assert res.status_code == 401
+assert res.status_code == 401
+def test_post_patch_auth_user(authorized_client,test_posts):
+    res=authorized_client.patch(f"/posts/{test_posts[0].id}", json={"title":"Ide gas"})
+    patch_post=schemas.Post(**res.json())
+    assert patch_post.title == "Ide gas"
+
+def test_post_patch_unauth_user(client,test_posts):
+    res=client.patch(f"/posts/{test_posts[0].id}", json={"title":"Ide gas"})
+    assert res.status_code==401
+
+def test_post_patch_non_exist(authorized_client,test_posts):
+    res=authorized_client.patch("/posts/8888", json={"title":"Ide gas"})
+    assert res.status_code==404
+
+def test_post_get_latest(authorized_client,test_posts):
+    res=authorized_client.get("/posts/latest")
+    latest_post=schemas.Post(**res.json())
+    assert  res.status_code==200

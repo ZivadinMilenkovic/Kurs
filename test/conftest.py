@@ -56,7 +56,7 @@ def test_user2(client):
     new_user=res.json()
     new_user['password']=user_data['password']
     return new_user
-
+    
 
 @pytest.fixture
 def token(test_user):
@@ -104,3 +104,23 @@ def test_posts(test_user, session,test_user2):
     posts = session.query(model.Post).all()
 
     return posts
+
+@pytest.fixture
+def test_users(session):
+    users_data=[
+{"email": "zivaa@gmail.com", "password": "Zika123"},
+{"email": "zivaaa@gmail.com", "password": "Zika123"},
+{"email": "zivaaaa@gmail.com", "password": "Zika123"}
+    ]
+
+    def validate(user):
+        return model.User(**user)
+
+    user_map=map(validate,users_data)
+    user_list=list(user_map)
+
+    session.add_all(user_list)
+    session.commit()
+    users=session.query(model.User).all()
+
+    return users
