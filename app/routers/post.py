@@ -62,7 +62,7 @@ def create_posts(
     # new_post = model.Post(
     #     title=post.title, content=post.content, published=post.published
     # )
-    new_post = model.Post(**post.dict(), owner_id=curr_user.id)
+    new_post = model.Post(**post.model_dump(), owner_id=curr_user.id)
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -195,6 +195,6 @@ def upadate_posts(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to performe requested auction",
         )
-    up_query.update(post.dict(), synchronize_session=False)
+    up_query.update(post.model_dump(), synchronize_session=False)
     db.commit()
     return up_query.first()
