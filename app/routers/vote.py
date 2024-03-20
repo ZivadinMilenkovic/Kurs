@@ -13,8 +13,12 @@ def create_vote(
     curr_user: int = Depends(oauth2.get_current_user),
     db: Session = Depends(get_db),
 ):
-    
-    post_owner=db.query(model.Post).filter(model.Post.id==vote.post_id, model.Post.owner_id==curr_user.id).first()
+
+    post_owner = (
+        db.query(model.Post)
+        .filter(model.Post.id == vote.post_id, model.Post.owner_id == curr_user.id)
+        .first()
+    )
     print(post_owner)
     post = db.query(model.Post).filter(model.Post.id == vote.post_id).first()
     if post == None:
@@ -33,7 +37,11 @@ def create_vote(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"User {curr_user.id} already vote on post {vote.post_id}",
             )
-        post_owner=db.query(model.Post).filter(model.Post.id==vote.post_id, model.Post.owner_id==curr_user.id).first()
+        post_owner = (
+            db.query(model.Post)
+            .filter(model.Post.id == vote.post_id, model.Post.owner_id == curr_user.id)
+            .first()
+        )
         if post_owner != None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

@@ -53,13 +53,15 @@ def test_incorect_login(client, email, password, status):
     assert res.status_code == status
     # assert res.json().get('detail')=="Invalid Credentials"
 
-def test_get_all_user(client,test_users):
-    res=client.get("/users/")
+
+def test_get_all_user(client, test_users):
+    res = client.get("/users/")
     print(res.json())
     assert len(test_users) == len(res.json())
 
-def test_get_one_user(authorized_client,test_users):
-    res=authorized_client.get(f"/users/{test_users[0].id}")
+
+def test_get_one_user(authorized_client, test_users):
+    res = authorized_client.get(f"/users/{test_users[0].id}")
     print(res.json())
-    user=schemas.UserOut(**res.json())
-    assert test_users[0].id ==user.id
+    user = schemas.UserOut(**res.json())
+    assert test_users[0].id == user.id

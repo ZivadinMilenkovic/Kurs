@@ -17,6 +17,7 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 Test_sessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 @pytest.fixture()
 def session():
     Base.metadata.drop_all(bind=engine)
@@ -27,6 +28,7 @@ def session():
     finally:
         db.close()
 
+
 @pytest.fixture()
 def client(session):
     def override_get_db():
@@ -34,63 +36,68 @@ def client(session):
             yield session
         finally:
             session.close()
+
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
+
 
 @pytest.fixture
 def test_user(client):
     user_data = {"email": "ziva@gmail.com", "password": "Zika123"}
-    res = client.post("/users/",json=user_data)
+    res = client.post("/users/", json=user_data)
 
     assert res.status_code == 201
-    new_user=res.json()
-    new_user['password']=user_data['password']
+    new_user = res.json()
+    new_user["password"] = user_data["password"]
     return new_user
+
 
 @pytest.fixture
 def test_user2(client):
     user_data = {"email": "ziva2@gmail.com", "password": "Zika123"}
-    res = client.post("/users/",json=user_data)
+    res = client.post("/users/", json=user_data)
 
     assert res.status_code == 201
-    new_user=res.json()
-    new_user['password']=user_data['password']
+    new_user = res.json()
+    new_user["password"] = user_data["password"]
     return new_user
-    
+
 
 @pytest.fixture
 def token(test_user):
-    return create_access_token({"user_id": test_user['id']})
+    return create_access_token({"user_id": test_user["id"]})
+
 
 @pytest.fixture
-def authorized_client(client,token):
-    client.headers= {**client.headers, "authorization": f"Bearer {token}"}
+def authorized_client(client, token):
+    client.headers = {**client.headers, "authorization": f"Bearer {token}"}
     return client
-    
+
+
 # Pravi se postovi za testiranje i automatski se prave i test korisnici
 @pytest.fixture
-def test_posts(test_user, session,test_user2):
+def test_posts(test_user, session, test_user2):
     posts_data = [
         {
             "title": "first title",
             "content": "firsto content",
-            "owner_id": test_user['id'],
+            "owner_id": test_user["id"],
         },
         {
             "title": "second title",
             "content": "second content",
-            "owner_id": test_user['id'],
+            "owner_id": test_user["id"],
         },
         {
             "title": "third title",
             "content": "third content",
-            "owner_id": test_user2['id'],
+            "owner_id": test_user2["id"],
         },
         {
             "title": "thirdd title",
             "content": "thirdd content",
-            "owner_id": test_user2['id'],
-        }
+            "owner_id": test_user2["id"],
+        },
     ]
 
     def create_post_model(post):
@@ -105,22 +112,23 @@ def test_posts(test_user, session,test_user2):
 
     return posts
 
+
 @pytest.fixture
 def test_users(session):
-    users_data=[
-{"email": "zivaa@gmail.com", "password": "Zika123"},
-{"email": "zivaaa@gmail.com", "password": "Zika123"},
-{"email": "zivaaaa@gmail.com", "password": "Zika123"}
+    users_data = [
+        {"email": "zivaa@gmail.com", "password": "Zika123"},
+        {"email": "zivaaa@gmail.com", "password": "Zika123"},
+        {"email": "zivaaaa@gmail.com", "password": "Zika123"},
     ]
 
     def validate(user):
         return model.User(**user)
 
-    user_map=map(validate,users_data)
-    user_list=list(user_map)
+    user_map = map(validate, users_data)
+    user_list = list(user_map)
 
     session.add_all(user_list)
     session.commit()
-    users=session.query(model.User).all()
+    users = session.query(model.User).all()
 
     return users

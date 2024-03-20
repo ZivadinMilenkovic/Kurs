@@ -11,7 +11,7 @@ class Post(Base):
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
     type_of_post = Column(String, server_default="text", nullable=False)
-    expire = Column(TIMESTAMP(timezone=True),nullable="True")
+    expire = Column(TIMESTAMP(timezone=True), nullable="True")
     published = Column(Boolean, server_default="TRUE", nullable=False)
     created_at = Column(
         TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")

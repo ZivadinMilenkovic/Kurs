@@ -6,9 +6,11 @@ from enum import IntEnum
 # class Post extends BaseModel
 # schima
 
+
 class TypeEnum(IntEnum):
-    post=1
-    story=2
+    post = 1
+    story = 2
+
 
 class PostBase(BaseModel):
     title: str
@@ -42,7 +44,7 @@ class UserOut(BaseModel):
 class Post(PostBase):
     id: int
     created_at: datetime
-    type_of_post:str
+    type_of_post: str
     owner_id: int
     owner: UserOut
 
