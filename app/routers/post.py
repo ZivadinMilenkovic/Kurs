@@ -1,18 +1,27 @@
+from datetime import timedelta,datetime
 from .. import model, schemas, oauth2
 from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func,or_,and_
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
 
-@router.get("/all", response_model=List[schemas.Post])
+@router.get("/all/story", response_model=List[schemas.Post])
+def get_all_story(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = db.query(model.Post).filter(model.Post.expire>datetime.today(),model.Post.type_of_post=="story").all()
+    return posts
+
+
+@router.get("/all/posts", response_model=List[schemas.Post])
 def get_posts(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    posts = db.query(model.Post).all()
+    posts = db.query(model.Post).filter(model.Post.type_of_post=="post").all()
     return posts
 
 
@@ -20,7 +29,7 @@ def get_posts(
 def get_posts(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    posts = db.query(model.Post).filter(model.Post.owner_id == curr_user.id).all()
+    posts = db.query(model.Post).filter(or_(model.Post.expire>datetime.today(), model.Post.expire==None)).all()
     return posts
 
 
@@ -36,7 +45,7 @@ def get_posts(
     results = (
         db.query(model.Post, func.count(model.Vote.post_id).label("votes"))
         .join(model.Vote, model.Vote.post_id == model.Post.id, isouter=True)
-        .filter(model.Post.title.contains(search))
+        .filter(model.Post.title.contains(search),model.Post.expire>datetime.today())
         .group_by(model.Post.id)
         .limit(limit)
         .offset(offset)
@@ -63,9 +72,18 @@ def create_posts(
     #     title=post.title, content=post.content, published=post.published
     # )
     new_post = model.Post(**post.model_dump(), owner_id=curr_user.id)
+    if new_post.type_of_post==1:
+        new_post.type_of_post="post"
+    else:
+        new_post.type_of_post="story"
     db.add(new_post)
     db.commit()
-    db.refresh(new_post)
+    expire=new_post.created_at+timedelta(minutes=10)
+    query=db.query(model.Post).filter(model.Post.id==new_post.id)
+    query.update({"expire":expire})
+    db.commit()
+    db.refresh(query.first())
+
     return new_post
 
 
@@ -73,19 +91,7 @@ def create_posts(
 def get_latest_post(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    #     cursor.execute(
-    #         """SELECT *
-    # FROM posts
-    # WHERE created_at=(
-    #     SELECT max(created_at) FROM posts
-    #     )"""
-    #     )
-    #     new_post = cursor.fetchone()
-    # new_post=db.query(model.Post).from_statement(text( """SELECT *
-    #  FROM posts
-    #  WHERE created_at=(
-    #      SELECT max(created_at) FROM posts
-    #      )""")).first()
+
     new_post = db.query(model.Post).order_by(desc("created_at")).first()
     return new_post
 
@@ -101,7 +107,7 @@ def get_post(
     post = (
         db.query(model.Post, func.count(model.Vote.post_id).label("votes"))
         .join(model.Vote, model.Vote.post_id == model.Post.id, isouter=True)
-        .filter(model.Post.id == id)
+        .filter(and_(model.Post.id == id,or_(model.Post.expire>datetime.today(), model.Post.expire==None)))
         .group_by(model.Post.id)
         .first()
     )

@@ -1,13 +1,18 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, conint
 from datetime import datetime
+from enum import IntEnum
 
 # class Post extends BaseModel
 # schima
 
+class TypeEnum(IntEnum):
+    post=1
+    story=2
 
 class PostBase(BaseModel):
     title: str
+    type_of_post: TypeEnum = TypeEnum.post
     content: str
     published: bool = True
 
@@ -37,6 +42,7 @@ class UserOut(BaseModel):
 class Post(PostBase):
     id: int
     created_at: datetime
+    type_of_post:str
     owner_id: int
     owner: UserOut
 
