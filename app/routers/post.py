@@ -22,6 +22,45 @@ def get_all_story(
     )
     return posts
 
+@router.get("/", response_model=List[schemas.Post])
+def get_all_story(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = (
+        db.query(model.Post)
+        .filter(            and_(
+                model.Post.owner_id==curr_user.id,
+                or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+            ))
+        .all()
+    )
+    return posts
+
+@router.get("/all", response_model=List[schemas.Post])
+def get_all_story(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = (
+        db.query(model.Post)
+        .filter(or_(
+            model.Post.expire > datetime.today(),model.Post.expire==None
+        ))
+        .all()
+    )
+    return posts
+
+@router.get("/", response_model=List[schemas.Post])
+def get_all_story(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = (
+        db.query(model.Post)
+        .filter(or_(
+            model.Post.expire > datetime.today(),model.Post.expire==None
+        ))
+        .all()
+    )
+    return posts
 
 @router.get("/all/posts", response_model=List[schemas.Post])
 def get_posts(
