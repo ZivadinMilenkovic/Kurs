@@ -24,7 +24,7 @@ def get_all_story(
 
 
 @router.get("/all/posts", response_model=List[schemas.Post])
-def get_posts(
+def get_all_posts(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
     posts = db.query(model.Post).filter(model.Post.type_of_post == "post").all()
@@ -33,7 +33,7 @@ def get_posts(
 
 
 @router.get("/", response_model=List[schemas.Post])
-def get_all_story(
+def get_all_posts_and_story_of_spec_user(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
     posts = (
@@ -47,7 +47,7 @@ def get_all_story(
     return posts
 
 @router.get("/all", response_model=List[schemas.Post])
-def get_all_story(
+def get_all_story_and_posts(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
     posts = (
@@ -68,24 +68,13 @@ def get_all_story(
         .filter(or_(
             model.Post.expire > datetime.today(),model.Post.expire==None
         ))
-        .all()
-    )
-    return posts
-
-@router.get("/", response_model=List[schemas.Post])
-def get_posts(
-    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
-):
-    posts = (
-        db.query(model.Post)
-        .filter(or_(model.Post.expire > datetime.today(), model.Post.expire == None))
         .all()
     )
     return posts
 
 
 @router.get("/query", response_model=List[schemas.PostOut])
-def get_posts(
+def get_query(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
     limit: int = 10,
@@ -122,7 +111,7 @@ def create_posts(
         new_post.type_of_post = "post"
     else:
         new_post.type_of_post = "story"
-        new_post.expire = datetime.today() + timedelta(minutes=10)
+        new_post.expire = datetime.today() + timedelta(minutes=1)
 
     db.add(new_post)
     db.commit()
