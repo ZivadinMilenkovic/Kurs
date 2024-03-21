@@ -20,6 +20,8 @@ class PostBase(BaseModel):
 
 
 class PostCreate(PostBase):
+    created_at: Optional[datetime] = None
+    expire: Optional[datetime] = None
     pass
 
 
