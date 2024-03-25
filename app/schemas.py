@@ -1,7 +1,9 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, conint
-from datetime import datetime
+from datetime import datetime,timezone
 from enum import IntEnum
+
+import pytz
 
 # class Post extends BaseModel
 # schima
@@ -17,12 +19,12 @@ class PostBase(BaseModel):
     type_of_post: TypeEnum = TypeEnum.post
     content: str
     published: bool = True
+    
 
 
 class PostCreate(PostBase):
-    created_at: Optional[datetime] = None
+    created_at: Optional[datetime] =datetime.now(tz=timezone.utc)
     expire: Optional[datetime] = None
-    pass
 
 
 class PostPatch(BaseModel):
@@ -46,7 +48,7 @@ class UserOut(BaseModel):
 class Post(PostBase):
     id: int
     created_at: datetime
-    type_of_post: str
+    type_of_post: int
     owner_id: int
     owner: UserOut
 

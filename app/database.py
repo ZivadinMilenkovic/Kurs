@@ -8,7 +8,7 @@ from .config import settings
 
 SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.datebase_username}:{settings.datebase_passoword}@{settings.datebase_hostname}/{settings.datebase_name}"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL,connect_args={"options": "-c timezone=utc"})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
