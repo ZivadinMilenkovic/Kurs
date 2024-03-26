@@ -18,7 +18,8 @@ def get_all_story(
     posts = (
         db.query(model.Post)
         .filter(
-            model.Post.expire > datetime.now(tz=timezone.utc), model.Post.type_of_post == schemas.TypeEnum.story
+            model.Post.expire > datetime.now(tz=timezone.utc),
+            model.Post.type_of_post == schemas.TypeEnum.story,
         )
         .all()
     )
@@ -29,9 +30,12 @@ def get_all_story(
 def get_all_posts(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    posts = db.query(model.Post).filter(model.Post.type_of_post == schemas.TypeEnum.post).all()
+    posts = (
+        db.query(model.Post)
+        .filter(model.Post.type_of_post == schemas.TypeEnum.post)
+        .all()
+    )
     return posts
-
 
 
 @router.get("/", response_model=List[schemas.Post])
@@ -40,13 +44,19 @@ def get_all_posts_and_story_of_spec_user(
 ):
     posts = (
         db.query(model.Post)
-        .filter(            and_(
-                model.Post.owner_id==curr_user.id,
-                or_(model.Post.expire > datetime.now(tz=timezone.utc), model.Post.expire == None),
-            ))
+        .filter(
+            and_(
+                model.Post.owner_id == curr_user.id,
+                or_(
+                    model.Post.expire > datetime.now(tz=timezone.utc),
+                    model.Post.expire == None,
+                ),
+            )
+        )
         .all()
     )
     return posts
+
 
 @router.get("/all", response_model=List[schemas.Post])
 def get_all_story_and_posts(
@@ -54,12 +64,16 @@ def get_all_story_and_posts(
 ):
     posts = (
         db.query(model.Post)
-        .filter(or_(
-            model.Post.expire > datetime.now(tz=timezone.utc),model.Post.expire==None
-        ))
+        .filter(
+            or_(
+                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire == None,
+            )
+        )
         .all()
     )
     return posts
+
 
 @router.get("/", response_model=List[schemas.Post])
 def get_all_story(
@@ -67,9 +81,12 @@ def get_all_story(
 ):
     posts = (
         db.query(model.Post)
-        .filter(or_(
-            model.Post.expire > datetime.now(tz=timezone.utc),model.Post.expire==None
-        ))
+        .filter(
+            or_(
+                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire == None,
+            )
+        )
         .all()
     )
     return posts
@@ -90,7 +107,10 @@ def get_query(
         .filter(
             and_(
                 model.Post.title.contains(search),
-                or_(model.Post.expire > datetime.now(tz=timezone.utc), model.Post.expire == None),
+                or_(
+                    model.Post.expire > datetime.now(tz=timezone.utc),
+                    model.Post.expire == None,
+                ),
             )
         )
         .group_by(model.Post.id)
@@ -107,10 +127,10 @@ def create_posts(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
 ):
-    x=datetime.now(tz=timezone.utc)+timedelta(minutes=1)
+    x = datetime.now(tz=timezone.utc) + timedelta(minutes=1)
 
     if post.type_of_post == schemas.TypeEnum.story:
-            post.expire = x
+        post.expire = x
 
     new_post = model.Post(**post.model_dump(), owner_id=curr_user.id)
     # if new_post.type_of_post == 1:
@@ -147,7 +167,10 @@ def get_post(
         .filter(
             and_(
                 model.Post.id == id,
-                or_(model.Post.expire > datetime.now(tz=timezone.utc), model.Post.expire == None),
+                or_(
+                    model.Post.expire > datetime.now(tz=timezone.utc),
+                    model.Post.expire == None,
+                ),
             )
         )
         .group_by(model.Post.id)
@@ -176,7 +199,10 @@ def delete_post(
     post = db.query(model.Post).filter(
         and_(
             model.Post.id == id,
-            or_(model.Post.expire > datetime.now(tz=timezone.utc), model.Post.expire == None),
+            or_(
+                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire == None,
+            ),
         )
     )
     if post.first() == None:
@@ -204,7 +230,10 @@ def patch_posts(
     pt_query = db.query(model.Post).filter(
         and_(
             model.Post.id == id,
-            or_(model.Post.expire >datetime.now(tz=timezone.utc), model.Post.expire == None),
+            or_(
+                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire == None,
+            ),
         )
     )
     if pt_query.first() == None:
@@ -232,7 +261,10 @@ def upadate_posts(
     up_query = db.query(model.Post).filter(
         and_(
             model.Post.id == id,
-            or_(model.Post.expire > datetime.now(tz=timezone.utc), model.Post.expire == None),
+            or_(
+                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire == None,
+            ),
         )
     )
     up_post = up_query.first()
