@@ -1,31 +1,80 @@
+from datetime import timedelta, datetime
 from .. import model, schemas, oauth2
 from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_, and_
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
 
-@router.get("/all", response_model=List[schemas.Post])
-def get_posts(
+@router.get("/all/story", response_model=List[schemas.Post])
+def get_all_story(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    posts = db.query(model.Post).all()
+    posts = (
+        db.query(model.Post)
+        .filter(
+            model.Post.expire > datetime.today(), model.Post.type_of_post == "story"
+        )
+        .all()
+    )
     return posts
 
 
-@router.get("/", response_model=List[schemas.Post])
-def get_posts(
+@router.get("/all/posts", response_model=List[schemas.Post])
+def get_all_posts(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    posts = db.query(model.Post).filter(model.Post.owner_id == curr_user.id).all()
+    posts = db.query(model.Post).filter(model.Post.type_of_post == "post").all()
+    return posts
+
+
+
+@router.get("/", response_model=List[schemas.Post])
+def get_all_posts_and_story_of_spec_user(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = (
+        db.query(model.Post)
+        .filter(            and_(
+                model.Post.owner_id==curr_user.id,
+                or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+            ))
+        .all()
+    )
+    return posts
+
+@router.get("/all", response_model=List[schemas.Post])
+def get_all_story_and_posts(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = (
+        db.query(model.Post)
+        .filter(or_(
+            model.Post.expire > datetime.today(),model.Post.expire==None
+        ))
+        .all()
+    )
+    return posts
+
+@router.get("/", response_model=List[schemas.Post])
+def get_all_story(
+    db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
+):
+    posts = (
+        db.query(model.Post)
+        .filter(or_(
+            model.Post.expire > datetime.today(),model.Post.expire==None
+        ))
+        .all()
+    )
     return posts
 
 
 @router.get("/query", response_model=List[schemas.PostOut])
-def get_posts(
+def get_query(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
     limit: int = 10,
@@ -36,7 +85,12 @@ def get_posts(
     results = (
         db.query(model.Post, func.count(model.Vote.post_id).label("votes"))
         .join(model.Vote, model.Vote.post_id == model.Post.id, isouter=True)
-        .filter(model.Post.title.contains(search))
+        .filter(
+            and_(
+                model.Post.title.contains(search),
+                or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+            )
+        )
         .group_by(model.Post.id)
         .limit(limit)
         .offset(offset)
@@ -45,27 +99,23 @@ def get_posts(
     return results
 
 
-# for example if user want to create post he need to be login
-# to see that user is login we need to add dependency get_user:Depends(oauth2.get_user)
 @router.post("/", response_model=schemas.Post, status_code=status.HTTP_201_CREATED)
 def create_posts(
     post: schemas.PostCreate,
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
 ):
-    # cursor.execute(
-    #     """INSERT INTO posts (title, content, published) VALUES (%s,%s,%s) RETURNING * """,
-    #     (post.title, post.content, post.publisshed),
-    # )
-    # new_post = cursor.fetchone()
-    # conn.commit()
-    # new_post = model.Post(
-    #     title=post.title, content=post.content, published=post.published
-    # )
+
     new_post = model.Post(**post.model_dump(), owner_id=curr_user.id)
+    if new_post.type_of_post == 1:
+        new_post.type_of_post = "post"
+    else:
+        new_post.type_of_post = "story"
+        new_post.expire = datetime.today() + timedelta(minutes=1)
+
     db.add(new_post)
     db.commit()
-    db.refresh(new_post)
+
     return new_post
 
 
@@ -73,19 +123,7 @@ def create_posts(
 def get_latest_post(
     db: Session = Depends(get_db), curr_user: int = Depends(oauth2.get_current_user)
 ):
-    #     cursor.execute(
-    #         """SELECT *
-    # FROM posts
-    # WHERE created_at=(
-    #     SELECT max(created_at) FROM posts
-    #     )"""
-    #     )
-    #     new_post = cursor.fetchone()
-    # new_post=db.query(model.Post).from_statement(text( """SELECT *
-    #  FROM posts
-    #  WHERE created_at=(
-    #      SELECT max(created_at) FROM posts
-    #      )""")).first()
+
     new_post = db.query(model.Post).order_by(desc("created_at")).first()
     return new_post
 
@@ -96,12 +134,16 @@ def get_post(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
 ):
-    # cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
-    # post = cursor.fetchone()
+
     post = (
         db.query(model.Post, func.count(model.Vote.post_id).label("votes"))
         .join(model.Vote, model.Vote.post_id == model.Post.id, isouter=True)
-        .filter(model.Post.id == id)
+        .filter(
+            and_(
+                model.Post.id == id,
+                or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+            )
+        )
         .group_by(model.Post.id)
         .first()
     )
@@ -124,10 +166,13 @@ def delete_post(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
 ):
-    # cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (str(id),))
-    # post = cursor.fetchone()
-    # conn.commit()
-    post = db.query(model.Post).filter(model.Post.id == id)
+
+    post = db.query(model.Post).filter(
+        and_(
+            model.Post.id == id,
+            or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+        )
+    )
     if post.first() == None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,7 +195,12 @@ def patch_posts(
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
 ):
-    pt_query = db.query(model.Post).filter(model.Post.id == id)
+    pt_query = db.query(model.Post).filter(
+        and_(
+            model.Post.id == id,
+            or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+        )
+    )
     if pt_query.first() == None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"{id} didnt found"
@@ -169,21 +219,16 @@ def patch_posts(
 @router.put("/{id}", response_model=schemas.Post)
 def upadate_posts(
     id: int,
-    post: schemas.PostCreate,
+    post: schemas.PostBase,
     db: Session = Depends(get_db),
     curr_user: int = Depends(oauth2.get_current_user),
 ):
-    # cursor.execute(
-    #     """UPDATE posts SET title = %s,content = %s WHERE id = %s RETURNING *""",
-    #     (
-    #         post.title,
-    #         post.content,
-    #         str(id),
-    #     ),
-    # )
-    # up_post = cursor.fetchone()
-    # conn.commit()
-    up_query = db.query(model.Post).filter(model.Post.id == id)
+    up_query = db.query(model.Post).filter(
+        and_(
+            model.Post.id == id,
+            or_(model.Post.expire > datetime.today(), model.Post.expire == None),
+        )
+    )
     up_post = up_query.first()
     if up_post == None:
         raise HTTPException(
