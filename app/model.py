@@ -12,11 +12,9 @@ class Post(Base):
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
     type_of_post = Column(Integer, nullable=False, server_default="1")
-    expire = Column(TIMESTAMP(timezone=True), nullable="True")
+    expire = Column(TIMESTAMP, nullable="True")
     published = Column(Boolean, server_default="TRUE", nullable=False)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, default=datetime.datetime.utcnow()
-    )
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
     owner_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )

@@ -22,7 +22,7 @@ class PostBase(BaseModel):
 
 
 class PostCreate(PostBase):
-    created_at: Optional[datetime] = datetime.now(tz=timezone.utc)
+    created_at: Optional[datetime] = datetime.now(tz=timezone.utc).isoformat()
     expire: Optional[datetime] = None
 
 
