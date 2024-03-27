@@ -183,7 +183,7 @@ def get_post(
             detail="Not authorized to performe requested auction",
         )
     post.Post.created_at = post.Post.created_at.astimezone(tz=timezone.utc)
-    
+
     return post
 
 
@@ -198,7 +198,7 @@ def delete_post(
         and_(
             model.Post.id == id,
             or_(
-                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire > datetime.now(tz=timezone.utc).isoformat(),
                 model.Post.expire == None,
             ),
         )
@@ -234,7 +234,7 @@ def patch_posts(
         and_(
             model.Post.id == id,
             or_(
-                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire > datetime.now(tz=timezone.utc).isoformat(),
                 model.Post.expire == None,
             ),
         )
@@ -270,7 +270,7 @@ def upadate_posts(
         and_(
             model.Post.id == id,
             or_(
-                model.Post.expire > datetime.now(tz=timezone.utc),
+                model.Post.expire > datetime.now(tz=timezone.utc).isoformat(),
                 model.Post.expire == None,
             ),
         )
