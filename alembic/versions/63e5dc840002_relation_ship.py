@@ -22,7 +22,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column("posts", sa.Column("owner_id", sa.Integer(), nullable=False))
     op.create_foreign_key(
-        "posts_users_fk",
+        "posts_user_fk",
         source_table="posts",
         referent_table="users",
         local_cols=["owner_id"],
@@ -33,6 +33,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("post_users_fk", table_name="posts")
+    # op.drop_constraint("posts_user_fk", table_name="posts")
     op.drop_column("posts", "owner_id")
     pass

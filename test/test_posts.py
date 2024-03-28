@@ -23,19 +23,23 @@ def test_user_get_all_posts_and_storys(client, test_posts):
     res = client.get("/posts/all")
     assert res.status_code == 401
 
-def test_user_get_all_posts(authorized_client,test_posts):
+
+def test_user_get_all_posts(authorized_client, test_posts):
     res = authorized_client.get("/posts/all/posts")
     assert res.status_code == 200
 
-def test_user_get_all_story(authorized_client,test_posts):
+
+def test_user_get_all_story(authorized_client, test_posts):
     res = authorized_client.get("/posts/all/story")
     assert res.status_code == 200
 
-def test_unathorized_user_get_all_posts(client,test_posts):
+
+def test_unathorized_user_get_all_posts(client, test_posts):
     res = client.get("/posts/all/posts")
     assert res.status_code == 401
 
-def test_unathorized_user_get_all_story(client,test_posts):
+
+def test_unathorized_user_get_all_story(client, test_posts):
     res = client.get("/posts/all/story")
     assert res.status_code == 401
 
@@ -69,9 +73,11 @@ def test_get_one_post_or_story_that_not_exist(authorized_client, test_posts):
 
 @pytest.mark.parametrize(
     "title,content,type_of_post",
-    [("ne_post", "TEST1",1), ("ne_post2", "TEST2",2), ("ne_post22", "TEST3",1)],
+    [("ne_post", "TEST1", 1), ("ne_post2", "TEST2", 2), ("ne_post22", "TEST3", 1)],
 )
-def test_unauthorized_create_post(client, test_posts, session, title, content,type_of_post):
+def test_unauthorized_create_post(
+    client, test_posts, session, title, content, type_of_post
+):
     res = client.post(
         "/posts",
         json={"title": title, "content": content, "owner_id": test_posts[0].owner_id},
@@ -82,12 +88,19 @@ def test_unauthorized_create_post(client, test_posts, session, title, content,ty
 
 @pytest.mark.parametrize(
     "title,content,type_of_post",
-    [("ne_post", "TEST1",1), ("ne_post2", "TEST2",2), ("ne_post22", "TEST3",1)],
+    [("ne_post", "TEST1", 1), ("ne_post2", "TEST2", 2), ("ne_post22", "TEST3", 1)],
 )
-def test_create_post(authorized_client, test_posts, session, title, content,type_of_post):
+def test_create_post(
+    authorized_client, test_posts, session, title, content, type_of_post
+):
     res = authorized_client.post(
         "/posts",
-        json={"title": title, "content": content, "type_of_post":type_of_post ,"owner_id": test_posts[0].owner_id},
+        json={
+            "title": title,
+            "content": content,
+            "type_of_post": type_of_post,
+            "owner_id": test_posts[0].owner_id,
+        },
     )
     print(res.json())
     new_post = schemas.Post(**res.json())
